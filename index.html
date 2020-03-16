@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Chat</title>
+</head>
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+    }
+
+    form {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        background: grey;
+        padding: 10px;
+    }
+
+    #name {
+        width: 10%;
+        float: left;
+        height: 30px;
+        border: none;
+    }
+
+    #pesan {
+        margin-left: 10px;
+        border: none;
+        width: 50%;
+        float: left;
+        height: 30px;
+    }
+
+    #message li:nth-child(even) {
+        background: #333333;
+        color: white;
+    }
+    #rightBox li:nth-child(even) {
+        background: #333333;
+        color: white;
+    }
+
+    li {
+        padding: 6px;
+    }
+
+    ul {
+        list-style: none;
+        margin-left: 30px;
+    }
+
+    button {
+        width: 20%;
+        float: left;
+        height: 35px;
+        margin-left: 40px;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    #homepage {
+        margin-left: 30px;
+    }
+    #rightBox{
+        float: left;
+        width: 70%;
+    }
+    #leftBox{
+        float: left;
+        width: 20%;
+    }
+</style>
+
+<body>
+
+    <div id="homepage">
+        <h1>Selamat datang hay</h1>
+        <input type="text" autocomplete="off" required id="name" placeholder="Nama kamu..">
+        <button id="submit_name">Masuk !</button>
+    </div>
+
+    <div id="chatroom" class="hidden">
+        <div id="leftBox">
+            <ul id="message"></ul>
+        </div>
+
+        <div id="rightBox">
+            <ul id="user_list"></ul>
+        </div>
+        <form>
+            <input type="text" autocomplete="off" id="pesan" placeholder="Masukkan teks.."> <button> Kirim </button>
+        </form>
+    </div>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="/node_modules/socket.io-client/dist/socket.io.js"></script>
+    <script>
+
+
+
+        var socket = io();
+        var name = "";
+        $("form").submit(function (e) {
+            name = $('#name').val();
+            socket.emit('newMessage', name + " : " + $('#pesan').val());
+            $('input').val('');
+            isTyping = false
+            return false;
+        });
+
+        socket.on('addOnlineUsers', (usernames) => {
+            $('#user_list').empty();
+
+            for (let i = 0; i < usernames.length; i++) {
+                $('#user_list').append($("<li id='user_" + usernames[i] + "'>").text(usernames[i]));
+            }
+        })
+
+        socket.on('newMessage', (msg) => {
+            $('#message').append($('<li>').text(msg + ' || ' + Date()));
+            $('.temporary').remove();
+        });
+        var username = $('#name').val();
+
+        $('#submit_name').click(function () {
+            if ($('#name') != '') {
+                socket.emit('registerUser', username)
+            }
+        });
+
+        socket.on('registerRespond', (status) => {
+            if (status == false) {
+                alert('Users Already exist')
+            } else {
+                $('#chatroom').removeClass('hidden');
+                $('#homepage').addClass('hidden');
+            }
+        })
+
+        var isTyping = false
+        $('#pesan').keypress(function (e) { 
+            if (isTyping == false) {
+                socket.emit('newTyping', username + "Sedang mengetik...")
+            }
+
+            isTyping = true
+        });
+
+        socket.on('newTyping', (msg) => {
+            $('#message').append($('<li class="temporary">').text(msg));
+        })
+
+    </script>
+</body>
+
+</html>
